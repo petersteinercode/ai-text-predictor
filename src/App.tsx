@@ -8,13 +8,9 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-load predictions on component mount
-  useEffect(() => {
-    handlePredict();
-  }, []);
-
-  const handlePredict = async () => {
-    if (!inputText.trim()) {
+  // Function to fetch predictions
+  const fetchPredictions = async (text: string) => {
+    if (!text.trim()) {
       setError("Please enter some text to predict from");
       return;
     }
@@ -23,27 +19,7 @@ function App() {
     setError(null);
 
     try {
-      const predictions = await llmService.getPredictions(inputText);
-      setPredictions(predictions);
-    } catch (err) {
-      setError("Failed to get predictions. Please try again.");
-      console.error("Prediction error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleWordSelect = async (word: string) => {
-    const newText = inputText + (inputText.endsWith(" ") ? "" : " ") + word;
-    setInputText(newText);
-    setPredictions([]);
-    
-    // Automatically run prediction for the new text
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const newPredictions = await llmService.getPredictions(newText);
+      const newPredictions = await llmService.getPredictions(text);
       setPredictions(newPredictions);
     } catch (err) {
       setError("Failed to get predictions. Please try again.");
@@ -53,67 +29,62 @@ function App() {
     }
   };
 
-  const handleClear = () => {
-    setInputText("The future of work is");
-    setPredictions([]);
-    setError(null);
+  // Auto-load predictions on component mount
+  useEffect(() => {
+    fetchPredictions(inputText);
+  }, []); // Empty dependency array means it runs once on mount
+
+  const handleWordSelect = async (word: string) => {
+    const newText = inputText + (inputText.endsWith(" ") ? "" : " ") + word;
+    setIsLoading(true); // Start loading immediately
+    setPredictions([]); // Clear predictions while loading new ones
+    await fetchPredictions(newText); // Fetch new predictions for the updated text
+    setInputText(newText); // Only update the main text after predictions are loaded
   };
 
   return (
-    <div className="app">
-      <div className="container">
-        <h1 className="title">AI Text Predictor</h1>
-        <p className="subtitle">
-          Start with "The future of work is" and let AI predict the next words
-        </p>
-
-        <div className="input-section">
-          <div className="input-container">
-            <textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="The future of work is..."
-              className="text-input"
-              rows={4}
-            />
-          </div>
-
-          <div className="button-group">
-            <button
-              onClick={handlePredict}
-              disabled={isLoading}
-              className="predict-button"
-            >
-              {isLoading ? "Predicting..." : "Predict Next Words"}
-            </button>
-            <button onClick={handleClear} className="clear-button">
-              Clear
-            </button>
-          </div>
-        </div>
-
+    <div className="app-container">
+      <div className="main-content">
+        <div className="main-text">{inputText}</div>
         {error && <div className="error-message">{error}</div>}
-
-        {predictions.length > 0 && (
-          <div className="predictions-section">
-            <h3 className="predictions-title">Top 5 Predictions:</h3>
-            <div className="predictions-grid">
-              {predictions.map((prediction, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleWordSelect(prediction.word)}
-                  className="prediction-card"
-                >
-                  <div className="prediction-word">{prediction.word}</div>
-                  <div className="prediction-probability">
-                    {(prediction.probability * 100).toFixed(1)}%
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {isLoading ? (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+        </div>
+      ) : predictions.length > 0 ? (
+        <div className="predictions-list">
+          {(() => {
+            // Reorder predictions: most likely in center, 2nd/3rd above/below, 4th/5th at top/bottom
+            const reorderedPredictions = [
+              predictions[3], // 4th most likely at top
+              predictions[1], // 2nd most likely
+              predictions[0], // 1st most likely (center)
+              predictions[2], // 3rd most likely
+              predictions[4], // 5th most likely at bottom
+            ].filter(Boolean); // Remove any undefined items
+
+            return reorderedPredictions.map((prediction, displayIndex) => {
+              const originalIndex = predictions.indexOf(prediction);
+              return (
+                <button
+                  key={originalIndex}
+                  onClick={() => handleWordSelect(prediction.word)}
+                  className={`prediction-word-item ${
+                    displayIndex === 2 ? "highlighted" : ""
+                  }`} // Highlight the center item (most likely)
+                >
+                  <span className="word-text">{prediction.word}</span>
+                  <span className="probability-text">
+                    {(prediction.probability * 100).toFixed(1)}%
+                  </span>
+                </button>
+              );
+            });
+          })()}
+        </div>
+      ) : null}
     </div>
   );
 }

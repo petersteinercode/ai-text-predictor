@@ -1,196 +1,143 @@
-.app {
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: center; /* Center vertically */
   min-height: 100vh;
+  padding: 50px 20px;
+  gap: 40px; /* Space between main text and predictions */
+}
+
+/* Ensure the predictions area maintains consistent width */
+.app-container > div:last-child {
+  min-width: 200px; /* Maintain minimum width for predictions area */
+}
+
+.main-content {
+  flex-shrink: 0; /* Prevent shrinking */
+  text-align: right; /* Align text to the right */
+  padding-top: 10px; /* Adjust vertical alignment with predictions */
+}
+
+.main-text {
+  font-size: 36px; /* Larger font size */
+  font-weight: 400;
+  color: black; /* Black text color */
+  line-height: 1.4;
+  white-space: pre-wrap; /* Preserve spaces and allow wrapping */
+  letter-spacing: -0.04em;
+}
+
+.predictions-list {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+  flex-direction: column;
+  gap: 10px; /* Space between prediction words */
+  padding-top: 10px; /* Adjust vertical alignment with main text */
 }
 
-.container {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  padding: 40px;
-  width: 100%;
-  max-width: 600px;
-  text-align: center;
-}
-
-.title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #2d3748;
-  margin-bottom: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.subtitle {
-  color: #718096;
-  font-size: 1.1rem;
-  margin-bottom: 30px;
-}
-
-.input-section {
-  margin-bottom: 30px;
-}
-
-.input-container {
-  margin-bottom: 20px;
-}
-
-.text-input {
-  width: 100%;
-  padding: 15px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 16px;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 100px;
-  transition: border-color 0.2s ease;
-}
-
-.text-input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.button-group {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.predict-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+.prediction-word-item {
+  background: none;
   border: none;
-  padding: 12px 30px;
-  border-radius: 25px;
-  font-size: 16px;
-  font-weight: 600;
+  color: #333; /* Default text color */
+  font-size: 36px; /* Match main text font size */
+  font-weight: 400;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  min-width: 180px;
+  padding: 0;
+  text-align: left; /* Align text to the left */
+  transition: background-color 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  letter-spacing: -0.04em;
 }
 
-.predict-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+.word-text {
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: -0.04em;
 }
 
-.predict-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+.probability-text {
+  font-size: 18px;
+  color: black;
+  font-weight: 400;
 }
 
-.clear-button {
-  background: #f7fafc;
-  color: #4a5568;
-  border: 2px solid #e2e8f0;
-  padding: 12px 30px;
-  border-radius: 25px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 120px;
+.prediction-word-item:hover .word-text {
+  color: #fe8a2b; /* Orange on hover */
 }
 
-.clear-button:hover {
-  background: #edf2f7;
-  border-color: #cbd5e0;
-  transform: translateY(-1px);
+.prediction-word-item.highlighted {
+  background-color: #fe8a2b; /* Orange background */
+  color: black; /* Black text */
+  padding: 5px 10px; /* 5px top/bottom, 10px left/right */
+  border-radius: 9px; /* Increased by 5px from 4px */
+  margin: 0 -10px; /* Offset the padding to maintain alignment */
+}
+
+.prediction-word-item.highlighted .word-text,
+.prediction-word-item.highlighted .probability-text {
+  color: black;
 }
 
 .error-message {
-  background: #fed7d7;
-  color: #c53030;
-  padding: 12px 20px;
+  color: #e53e3e;
+  background-color: #fed7d7;
+  border: 1px solid #fc8181;
+  padding: 10px 20px;
   border-radius: 8px;
   margin-bottom: 20px;
-  border-left: 4px solid #f56565;
-}
-
-.predictions-section {
-  margin-top: 30px;
-}
-
-.predictions-title {
-  color: #2d3748;
-  font-size: 1.3rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-}
-
-.predictions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.prediction-card {
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.prediction-card:hover {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.15);
-}
-
-.prediction-word {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 5px;
-}
-
-.prediction-probability {
   font-size: 0.9rem;
-  color: #667eea;
-  font-weight: 500;
 }
 
-@media (max-width: 640px) {
-  .container {
-    padding: 20px;
-  }
+.loading-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #fe8a2b;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
 
-  .title {
-    font-size: 2rem;
-  }
+/* Container for loading spinner to maintain consistent width */
+.loading-container {
+  min-width: 200px; /* Match the predictions area width */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
-  .button-group {
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .app-container {
     flex-direction: column;
     align-items: center;
+    gap: 20px;
+    padding: 30px 15px;
   }
 
-  .predict-button,
-  .clear-button {
-    width: 100%;
-    max-width: 300px;
+  .main-content {
+    text-align: center;
   }
 
-  .predictions-grid {
-    grid-template-columns: 1fr;
+  .main-text,
+  .word-text {
+    font-size: 28px;
+  }
+
+  .probability-text {
+    font-size: 14px;
+  }
+
+  .prediction-word-item.highlighted {
+    padding: 5px 8px; /* 5px top/bottom, 8px left/right for mobile */
   }
 }

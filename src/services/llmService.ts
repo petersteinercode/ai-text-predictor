@@ -55,7 +55,16 @@ class LLMService {
           .filter((pred) => pred.word.length > 0) // Filter out empty tokens
           .slice(0, 5);
 
+        // Ensure we always return exactly 5 predictions
         if (predictions.length >= 3) {
+          // If we have fewer than 5, pad with mock predictions
+          if (predictions.length < 5) {
+            const mockPredictions = await this.getMockPredictions(text);
+            const additionalPredictions = mockPredictions
+              .filter((mock) => !predictions.some((p) => p.word === mock.word))
+              .slice(0, 5 - predictions.length);
+            return [...predictions, ...additionalPredictions].slice(0, 5);
+          }
           return predictions;
         }
       }
@@ -164,10 +173,30 @@ class LLMService {
         (pred, index, self) =>
           index === self.findIndex((p) => p.word === pred.word)
       )
-      .sort((a, b) => b.probability - a.probability)
-      .slice(0, 5);
+      .sort((a, b) => b.probability - a.probability);
 
-    return uniquePredictions;
+    // Ensure we always return exactly 5 predictions
+    if (uniquePredictions.length < 5) {
+      // Add more random predictions if we don't have enough
+      const additionalWords = commonWords.filter(
+        (word) => !uniquePredictions.some((pred) => pred.word === word)
+      );
+
+      while (uniquePredictions.length < 5 && additionalWords.length > 0) {
+        const randomWord =
+          additionalWords[Math.floor(Math.random() * additionalWords.length)];
+        const probability = Math.random() * 0.5 + 0.1; // 10-60% probability
+        uniquePredictions.push({
+          word: randomWord,
+          probability: probability,
+        });
+        // Remove the word we just added to avoid duplicates
+        const index = additionalWords.indexOf(randomWord);
+        if (index > -1) additionalWords.splice(index, 1);
+      }
+    }
+
+    return uniquePredictions.slice(0, 5);
   }
 }
 
