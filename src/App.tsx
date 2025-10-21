@@ -15,6 +15,9 @@ function App() {
     null
   );
   const [previousText, setPreviousText] = useState("");
+  const [hoveredBlurb, setHoveredBlurb] = useState<"top" | "bottom" | null>(
+    null
+  );
 
   // Function to fetch predictions
   const fetchPredictions = async (text: string) => {
@@ -108,6 +111,18 @@ function App() {
 
   return (
     <div className="app-wrapper">
+      <div
+        className={`top-explanation-text ${
+          hoveredBlurb === "top" ? "hovered" : ""
+        } ${hoveredBlurb === "bottom" ? "faded" : ""}`}
+        onMouseEnter={() => setHoveredBlurb("top")}
+        onMouseLeave={() => setHoveredBlurb(null)}
+      >
+        Every time an LLM determines the next word in a sequence, it will pass
+        the entire sequence from the beginning (with the new word) through the
+        model to predict what comes next.
+      </div>
+
       <div className="app-container">
         <div className="main-content">
           <div key={animationKey} className={`main-text ${textAnimationClass}`}>
@@ -184,7 +199,13 @@ function App() {
         ) : null}
       </div>
 
-      <div className="explanation-text">
+      <div
+        className={`explanation-text ${
+          hoveredBlurb === "bottom" ? "hovered" : ""
+        } ${hoveredBlurb === "top" ? "faded" : ""}`}
+        onMouseEnter={() => setHoveredBlurb("bottom")}
+        onMouseLeave={() => setHoveredBlurb(null)}
+      >
         LLMs use statistical pattern matching to calculate which word is most
         likely to come next based on millions of text examples they were trained
         on.

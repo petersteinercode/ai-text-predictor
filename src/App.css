@@ -203,6 +203,26 @@
   }
 }
 
+.top-explanation-text {
+  text-align: center;
+  font-size: 16px;
+  color: #000000;
+  padding: 20px;
+  line-height: 1.4;
+  max-width: 650px;
+  margin: 40px auto 0 auto;
+  opacity: 0.2;
+  transition: opacity 0.3s ease;
+}
+
+.top-explanation-text.hovered {
+  opacity: 1;
+}
+
+.top-explanation-text.faded {
+  opacity: 0;
+}
+
 .explanation-text {
   text-align: center;
   font-size: 16px;
@@ -211,6 +231,16 @@
   line-height: 1.4;
   max-width: 550px;
   margin: 0 auto 40px auto;
+  opacity: 0.2;
+  transition: opacity 0.3s ease;
+}
+
+.explanation-text.hovered {
+  opacity: 1;
+}
+
+.explanation-text.faded {
+  opacity: 0;
 }
 
 @media (max-width: 768px) {
@@ -236,6 +266,12 @@
 
   .prediction-word-item.highlighted {
     padding: 5px 8px; /* 5px top/bottom, 8px left/right for mobile */
+  }
+
+  .top-explanation-text {
+    font-size: 14px;
+    padding: 15px;
+    max-width: 90%;
   }
 
   .explanation-text {
