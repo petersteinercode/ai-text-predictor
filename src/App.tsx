@@ -11,6 +11,10 @@ function App() {
   const [textAnimationClass, setTextAnimationClass] = useState("");
   const [animationKey, setAnimationKey] = useState(0);
   const [slidingWordIndex, setSlidingWordIndex] = useState<number | null>(null);
+  const [wordHighlightIndex, setWordHighlightIndex] = useState<number | null>(
+    null
+  );
+  const [previousText, setPreviousText] = useState("");
 
   // Function to fetch predictions
   const fetchPredictions = async (text: string) => {
@@ -49,6 +53,22 @@ function App() {
     fetchPredictions(inputText);
   }, []); // Empty dependency array means it runs once on mount
 
+  // Function to trigger word highlight animation for all words
+  const triggerWordHighlight = (text: string) => {
+    const words = text.split(/\s+/);
+
+    // Animate each word sequentially
+    for (let i = 0; i < words.length; i++) {
+      setTimeout(() => {
+        setWordHighlightIndex(i);
+        // Clear highlight after animation
+        setTimeout(() => {
+          setWordHighlightIndex(null);
+        }, 800); // Longer dissolve duration
+      }, i * 200); // 200ms delay between each word
+    }
+  };
+
   const handleWordSelect = async (word: string, wordIndex: number) => {
     // Check if the word is punctuation - if so, don't add a space before it
     const isPunctuation = /^[.,!?;:()"'`-]+$/.test(word);
@@ -60,6 +80,14 @@ function App() {
     // Trigger word slide-out animation
     setSlidingWordIndex(wordIndex);
 
+    // Update text immediately so animation can highlight the correct words
+    setInputText(newText);
+
+    // Start word highlight animation immediately after text update
+    setTimeout(() => {
+      triggerWordHighlight(newText);
+    }, 50); // Small delay to ensure text has updated
+
     // Start main text slide animation before word slide completes
     setTimeout(async () => {
       // Trigger main text slide animation
@@ -70,8 +98,7 @@ function App() {
       setPredictions([]); // Clear predictions while loading new ones
       setAnimationStep(0); // Reset animation
 
-      // Update text and fetch predictions
-      setInputText(newText);
+      // Fetch predictions
       await fetchPredictions(newText);
 
       // Reset sliding word index
@@ -80,70 +107,88 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <div className="main-content">
-        <div key={animationKey} className={`main-text ${textAnimationClass}`}>
-          {inputText}
+    <div className="app-wrapper">
+      <div className="app-container">
+        <div className="main-content">
+          <div key={animationKey} className={`main-text ${textAnimationClass}`}>
+            {inputText.split(/\s+/).map((word, index) => (
+              <span
+                key={`${word}-${index}`}
+                className={`word ${
+                  wordHighlightIndex === index ? "word-highlight" : ""
+                }`}
+              >
+                {word}
+                {index < inputText.split(/\s+/).length - 1 && " "}
+              </span>
+            ))}
+          </div>
+          {error && <div className="error-message">{error}</div>}
         </div>
-        {error && <div className="error-message">{error}</div>}
+
+        {isLoading ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+          </div>
+        ) : predictions.length > 0 ? (
+          <div className="predictions-list">
+            {(() => {
+              // Reorder predictions: most likely in center, 2nd/3rd above/below, 4th/5th at top/bottom
+              const reorderedPredictions = [
+                predictions[3], // 4th most likely at top
+                predictions[1], // 2nd most likely
+                predictions[0], // 1st most likely (center)
+                predictions[2], // 3rd most likely
+                predictions[4], // 5th most likely at bottom
+              ].filter(Boolean); // Remove any undefined items
+
+              return reorderedPredictions.map((prediction, displayIndex) => {
+                const originalIndex = predictions.indexOf(prediction);
+
+                // Determine animation class based on position and animation step
+                let animationClass = "";
+                if (displayIndex === 2) {
+                  // Center item (most likely) - appears first
+                  animationClass = animationStep >= 1 ? "build-in" : "";
+                } else if (displayIndex === 1 || displayIndex === 3) {
+                  // 2nd and 3rd most likely - appear in step 2
+                  animationClass =
+                    animationStep >= 2 ? "build-in build-delay-1" : "";
+                } else {
+                  // 4th and 5th most likely - appear in step 3
+                  animationClass =
+                    animationStep >= 3 ? "build-in build-delay-2" : "";
+                }
+
+                return (
+                  <button
+                    key={originalIndex}
+                    onClick={() =>
+                      handleWordSelect(prediction.word, originalIndex)
+                    }
+                    className={`prediction-word-item ${
+                      displayIndex === 2 ? "highlighted" : ""
+                    } ${animationClass} ${
+                      slidingWordIndex === originalIndex ? "slide-out" : ""
+                    }`}
+                  >
+                    <span className="word-text">{prediction.word}</span>
+                    <span className="probability-text">
+                      {(prediction.probability * 100).toFixed(1)}%
+                    </span>
+                  </button>
+                );
+              });
+            })()}
+          </div>
+        ) : null}
       </div>
 
-      {isLoading ? (
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-        </div>
-      ) : predictions.length > 0 ? (
-        <div className="predictions-list">
-          {(() => {
-            // Reorder predictions: most likely in center, 2nd/3rd above/below, 4th/5th at top/bottom
-            const reorderedPredictions = [
-              predictions[3], // 4th most likely at top
-              predictions[1], // 2nd most likely
-              predictions[0], // 1st most likely (center)
-              predictions[2], // 3rd most likely
-              predictions[4], // 5th most likely at bottom
-            ].filter(Boolean); // Remove any undefined items
-
-            return reorderedPredictions.map((prediction, displayIndex) => {
-              const originalIndex = predictions.indexOf(prediction);
-
-              // Determine animation class based on position and animation step
-              let animationClass = "";
-              if (displayIndex === 2) {
-                // Center item (most likely) - appears first
-                animationClass = animationStep >= 1 ? "build-in" : "";
-              } else if (displayIndex === 1 || displayIndex === 3) {
-                // 2nd and 3rd most likely - appear in step 2
-                animationClass =
-                  animationStep >= 2 ? "build-in build-delay-1" : "";
-              } else {
-                // 4th and 5th most likely - appear in step 3
-                animationClass =
-                  animationStep >= 3 ? "build-in build-delay-2" : "";
-              }
-
-              return (
-                <button
-                  key={originalIndex}
-                  onClick={() =>
-                    handleWordSelect(prediction.word, originalIndex)
-                  }
-                  className={`prediction-word-item ${
-                    displayIndex === 2 ? "highlighted" : ""
-                  } ${animationClass} ${
-                    slidingWordIndex === originalIndex ? "slide-out" : ""
-                  }`}
-                >
-                  <span className="word-text">{prediction.word}</span>
-                  <span className="probability-text">
-                    {(prediction.probability * 100).toFixed(1)}%
-                  </span>
-                </button>
-              );
-            });
-          })()}
-        </div>
-      ) : null}
+      <div className="explanation-text">
+        LLMs use statistical pattern matching to calculate which word is most
+        likely to come next based on millions of text examples they were trained
+        on.
+      </div>
     </div>
   );
 }

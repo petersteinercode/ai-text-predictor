@@ -1,8 +1,15 @@
+.app-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
 .app-container {
   display: flex;
   justify-content: center;
   align-items: center; /* Center vertically */
-  min-height: 100vh;
+  flex: 1;
   padding: 50px 20px;
   gap: 40px; /* Space between main text and predictions */
 }
@@ -37,7 +44,7 @@
 .prediction-word-item {
   background: none;
   border: none;
-  color: #333; /* Default text color */
+  color: black; /* Changed to black */
   font-size: 36px; /* Match main text font size */
   font-weight: 400;
   cursor: pointer;
@@ -170,6 +177,42 @@
   }
 }
 
+/* Word highlight animation */
+.word {
+  display: inline;
+  transition: color 0.3s ease;
+}
+
+.word-highlight {
+  color: #fe8a2b;
+  animation: wordHighlight 0.8s ease;
+}
+
+@keyframes wordHighlight {
+  0% {
+    color: black;
+  }
+  25% {
+    color: #fe8a2b;
+  }
+  75% {
+    color: #fe8a2b;
+  }
+  100% {
+    color: black;
+  }
+}
+
+.explanation-text {
+  text-align: center;
+  font-size: 16px;
+  color: #000000;
+  padding: 20px;
+  line-height: 1.4;
+  max-width: 550px;
+  margin: 0 auto 40px auto;
+}
+
 @media (max-width: 768px) {
   .app-container {
     flex-direction: column;
@@ -193,5 +236,11 @@
 
   .prediction-word-item.highlighted {
     padding: 5px 8px; /* 5px top/bottom, 8px left/right for mobile */
+  }
+
+  .explanation-text {
+    font-size: 11px;
+    padding: 15px;
+    max-width: 90%;
   }
 }
