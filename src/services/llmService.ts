@@ -56,7 +56,7 @@ class LLMService {
           if (predictions.length < 5) {
             const mockPredictions = await this.getMockPredictions(text);
             const additionalPredictions = mockPredictions
-              .filter((mock) => !predictions.some((p) => p.word === mock.word))
+              .filter((mock) => !predictions.some((p: Prediction) => p.word === mock.word))
               .slice(0, 5 - predictions.length);
             return [...predictions, ...additionalPredictions].slice(0, 5);
           }
