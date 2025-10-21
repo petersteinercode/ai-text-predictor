@@ -13,9 +13,11 @@ class LLMService {
 
   private initialize() {
     const gatewayUrl = (import.meta as any).env?.VITE_AI_GATEWAY_URL;
+    console.log("AI Gateway URL:", gatewayUrl);
     if (gatewayUrl) {
       this.gatewayUrl = gatewayUrl;
       this.isInitialized = true;
+      console.log("AI Gateway initialized successfully");
     } else {
       console.warn("AI Gateway URL not found. Using mock predictions.");
     }
@@ -27,6 +29,16 @@ class LLMService {
     }
 
     try {
+      console.log("Making request to AI Gateway:", this.gatewayUrl);
+      console.log("Request payload:", {
+        model: "gpt-3.5-turbo-instruct",
+        prompt: text,
+        max_tokens: 1,
+        temperature: 0.7,
+        logprobs: 5,
+        echo: false,
+      });
+      
       // Use Vercel AI Gateway with OpenAI completions API
       const response = await fetch(this.gatewayUrl, {
         method: "POST",
@@ -42,13 +54,18 @@ class LLMService {
           echo: false, // Don't echo the input
         }),
       });
+      
+      console.log("Response status:", response.status);
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log("Response data:", data);
       const logprobs = data.choices?.[0]?.logprobs;
+      console.log("Logprobs:", logprobs);
 
       if (logprobs && logprobs.top_logprobs && logprobs.top_logprobs[0]) {
         const topLogprobs = logprobs.top_logprobs[0];
@@ -77,6 +94,10 @@ class LLMService {
       }
     } catch (error) {
       console.error("AI Gateway error:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
     }
 
     return this.getMockPredictions(text);
