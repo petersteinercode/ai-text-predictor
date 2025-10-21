@@ -116,6 +116,60 @@
   }
 }
 
+/* Build animation classes */
+.prediction-word-item {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.prediction-word-item.build-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.prediction-word-item.build-delay-1 {
+  transition-delay: 0.2s;
+}
+
+.prediction-word-item.build-delay-2 {
+  transition-delay: 0.4s;
+}
+
+/* Text slide animation classes */
+.main-text {
+  transform: translateX(0);
+}
+
+.main-text.slide-left {
+  animation: slideLeft 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes slideLeft {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-20px);
+  }
+}
+
+/* Word slide-out animation */
+.prediction-word-item.slide-out {
+  animation: slideOutLeft 0.3s ease forwards;
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+}
+
 @media (max-width: 768px) {
   .app-container {
     flex-direction: column;

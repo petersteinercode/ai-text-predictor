@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import { llmService, Prediction } from "./services/llmService";
 
@@ -7,6 +7,10 @@ function App() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [animationStep, setAnimationStep] = useState(0);
+  const [textAnimationClass, setTextAnimationClass] = useState("");
+  const [animationKey, setAnimationKey] = useState(0);
+  const [slidingWordIndex, setSlidingWordIndex] = useState<number | null>(null);
 
   // Function to fetch predictions
   const fetchPredictions = async (text: string) => {
@@ -17,10 +21,21 @@ function App() {
 
     setIsLoading(true);
     setError(null);
+    setAnimationStep(0); // Reset animation
 
     try {
       const newPredictions = await llmService.getPredictions(text);
       setPredictions(newPredictions);
+
+      // Start animation sequence
+      // Step 1: Most likely word (center) appears first
+      setTimeout(() => setAnimationStep(1), 50);
+
+      // Step 2: Next 2 most likely words appear 0.001s after step 1 starts
+      setTimeout(() => setAnimationStep(2), 50);
+
+      // Step 3: Final 2 words appear 0.001s after step 2 starts
+      setTimeout(() => setAnimationStep(3), 50);
     } catch (err) {
       setError("Failed to get predictions. Please try again.");
       console.error("Prediction error:", err);
@@ -34,18 +49,42 @@ function App() {
     fetchPredictions(inputText);
   }, []); // Empty dependency array means it runs once on mount
 
-  const handleWordSelect = async (word: string) => {
-    const newText = inputText + (inputText.endsWith(" ") ? "" : " ") + word;
-    setIsLoading(true); // Start loading immediately
-    setPredictions([]); // Clear predictions while loading new ones
-    await fetchPredictions(newText); // Fetch new predictions for the updated text
-    setInputText(newText); // Only update the main text after predictions are loaded
+  const handleWordSelect = async (word: string, wordIndex: number) => {
+    // Check if the word is punctuation - if so, don't add a space before it
+    const isPunctuation = /^[.,!?;:()"'`-]+$/.test(word);
+    const newText =
+      inputText +
+      (isPunctuation ? "" : inputText.endsWith(" ") ? "" : " ") +
+      word;
+
+    // Trigger word slide-out animation
+    setSlidingWordIndex(wordIndex);
+
+    // Start main text slide animation before word slide completes
+    setTimeout(async () => {
+      // Trigger main text slide animation
+      setAnimationKey((prev) => prev + 1);
+      setTextAnimationClass("slide-left");
+
+      setIsLoading(true); // Start loading immediately
+      setPredictions([]); // Clear predictions while loading new ones
+      setAnimationStep(0); // Reset animation
+
+      // Update text and fetch predictions
+      setInputText(newText);
+      await fetchPredictions(newText);
+
+      // Reset sliding word index
+      setSlidingWordIndex(null);
+    }, 150); // Start main text slide before word slide completes (0.3s)
   };
 
   return (
     <div className="app-container">
       <div className="main-content">
-        <div className="main-text">{inputText}</div>
+        <div key={animationKey} className={`main-text ${textAnimationClass}`}>
+          {inputText}
+        </div>
         {error && <div className="error-message">{error}</div>}
       </div>
 
@@ -67,13 +106,33 @@ function App() {
 
             return reorderedPredictions.map((prediction, displayIndex) => {
               const originalIndex = predictions.indexOf(prediction);
+
+              // Determine animation class based on position and animation step
+              let animationClass = "";
+              if (displayIndex === 2) {
+                // Center item (most likely) - appears first
+                animationClass = animationStep >= 1 ? "build-in" : "";
+              } else if (displayIndex === 1 || displayIndex === 3) {
+                // 2nd and 3rd most likely - appear in step 2
+                animationClass =
+                  animationStep >= 2 ? "build-in build-delay-1" : "";
+              } else {
+                // 4th and 5th most likely - appear in step 3
+                animationClass =
+                  animationStep >= 3 ? "build-in build-delay-2" : "";
+              }
+
               return (
                 <button
                   key={originalIndex}
-                  onClick={() => handleWordSelect(prediction.word)}
+                  onClick={() =>
+                    handleWordSelect(prediction.word, originalIndex)
+                  }
                   className={`prediction-word-item ${
                     displayIndex === 2 ? "highlighted" : ""
-                  }`} // Highlight the center item (most likely)
+                  } ${animationClass} ${
+                    slidingWordIndex === originalIndex ? "slide-out" : ""
+                  }`}
                 >
                   <span className="word-text">{prediction.word}</span>
                   <span className="probability-text">
