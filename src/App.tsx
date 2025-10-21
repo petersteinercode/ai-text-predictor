@@ -8,22 +8,19 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-predict when component mounts
-  useEffect(() => {
-    handlePredict();
-  }, []);
-
   const handlePredict = async () => {
     if (!currentText.trim()) {
       setError("No text to predict from");
       return;
     }
 
+    console.log("Predicting for text:", currentText);
     setIsLoading(true);
     setError(null);
 
     try {
       const predictions = await llmService.getPredictions(currentText);
+      console.log("Got predictions:", predictions);
       setPredictions(predictions);
     } catch (err) {
       setError("Failed to get predictions. Please try again.");
@@ -33,11 +30,16 @@ function App() {
     }
   };
 
+  // Auto-predict when component mounts
+  useEffect(() => {
+    handlePredict();
+  }, []);
+
   const handleWordSelect = (word: string) => {
     const newText = currentText + " " + word;
     setCurrentText(newText);
     setPredictions([]);
-    
+
     // Auto-predict next word after selection
     setTimeout(() => {
       handlePredict();
@@ -48,7 +50,7 @@ function App() {
     setCurrentText("The future of work is");
     setPredictions([]);
     setError(null);
-    
+
     // Auto-predict after reset
     setTimeout(() => {
       handlePredict();
@@ -59,9 +61,7 @@ function App() {
     <div className="app">
       <div className="container">
         <h1 className="title">AI Text Predictor</h1>
-        <p className="subtitle">
-          Click on a word to continue the sentence
-        </p>
+        <p className="subtitle">Click on a word to continue the sentence</p>
 
         <div className="text-display">
           <span className="base-text">The future of work is</span>
@@ -96,6 +96,9 @@ function App() {
                   <div className="bar-word">{prediction.word}</div>
                 </div>
               ))}
+            </div>
+            <div className="debug-info" style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
+              Debug: {predictions.length} predictions loaded
             </div>
           </div>
         )}
