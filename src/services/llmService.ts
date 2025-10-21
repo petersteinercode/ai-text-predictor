@@ -14,7 +14,7 @@ class LLMService {
   }
 
   private initialize() {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    const apiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY;
     if (apiKey) {
       this.openai = new OpenAI({
         apiKey: apiKey,
@@ -32,51 +32,31 @@ class LLMService {
     }
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are a text prediction assistant. Given a piece of text, predict the next 5 most likely DIFFERENT words that could follow. 
-            IMPORTANT: Each word must be unique - no duplicates allowed.
-            Return your response as a JSON array of objects with "word" and "probability" fields. 
-            The probability should be a number between 0 and 1 representing how likely that word is to follow the given text.
-            Provide diverse, contextually appropriate words that could naturally follow the text.
-            Example format: [{"word": "the", "probability": 0.8}, {"word": "and", "probability": 0.6}, {"word": "to", "probability": 0.4}, {"word": "in", "probability": 0.3}, {"word": "for", "probability": 0.2}]`,
-          },
-          {
-            role: "user",
-            content: `Predict the next 5 most likely words for this text: "${text}"`,
-          },
-        ],
+      // Use completion API with logprobs to get real probability scores
+      const response = await this.openai.completions.create({
+        model: "gpt-3.5-turbo-instruct",
+        prompt: text,
+        max_tokens: 1,
         temperature: 0.7,
-        max_tokens: 200,
+        logprobs: 5, // Get top 5 log probabilities
+        echo: false, // Don't echo the input
       });
 
-      const content = response.choices[0]?.message?.content;
-      if (content) {
-        try {
-          const predictions = JSON.parse(content);
-          // Remove duplicates and ensure we have unique words
-          const uniquePredictions = predictions
-            .filter(
-              (pred, index, self) =>
-                index === self.findIndex((p) => p.word === pred.word)
-            )
-            .slice(0, 5);
+      const logprobs = response.choices[0]?.logprobs;
+      if (logprobs && logprobs.top_logprobs && logprobs.top_logprobs[0]) {
+        const topLogprobs = logprobs.top_logprobs[0];
+        
+        // Convert log probabilities to regular probabilities
+        const predictions: Prediction[] = Object.entries(topLogprobs)
+          .map(([token, logprob]) => ({
+            word: token.trim(),
+            probability: Math.exp(logprob), // Convert log probability to probability
+          }))
+          .filter(pred => pred.word.length > 0) // Filter out empty tokens
+          .slice(0, 5);
 
-          // If we don't have enough unique predictions, fall back to mock
-          if (uniquePredictions.length < 3) {
-            console.warn(
-              "LLM returned too few unique predictions, using mock fallback"
-            );
-            return this.getMockPredictions(text);
-          }
-
-          return uniquePredictions;
-        } catch (parseError) {
-          console.error("Failed to parse LLM response:", parseError);
-          return this.getMockPredictions(text);
+        if (predictions.length >= 3) {
+          return predictions;
         }
       }
     } catch (error) {
