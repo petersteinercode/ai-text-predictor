@@ -12,7 +12,7 @@ class LLMService {
 
   private initialize() {
     // Check if we have the required environment variables
-    const hasApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    const hasApiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY;
     if (hasApiKey) {
       this.isInitialized = true;
       console.log("AI Service initialized with OpenAI API key");
@@ -28,16 +28,16 @@ class LLMService {
 
     try {
       console.log("Making request to OpenAI API for text:", text);
-      
+
       // Use OpenAI API directly with the AI SDK
-      const response = await fetch('https://api.openai.com/v1/completions', {
-        method: 'POST',
+      const response = await fetch("https://api.openai.com/v1/completions", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${(import.meta as any).env?.VITE_OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo-instruct',
+          model: "gpt-3.5-turbo-instruct",
           prompt: text,
           max_tokens: 1,
           temperature: 0.7,
@@ -56,7 +56,7 @@ class LLMService {
 
       const data = await response.json();
       console.log("Response data:", data);
-      
+
       const logprobs = data.choices?.[0]?.logprobs;
       console.log("Logprobs:", logprobs);
 
