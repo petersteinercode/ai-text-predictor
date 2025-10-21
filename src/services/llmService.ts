@@ -11,14 +11,9 @@ class LLMService {
   }
 
   private initialize() {
-    // Check if we have the required environment variables
-    const hasApiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY;
-    if (hasApiKey) {
-      this.isInitialized = true;
-      console.log("AI Service initialized with OpenAI API key");
-    } else {
-      console.warn("OpenAI API key not found. Using mock predictions.");
-    }
+    // Always initialized - will use server-side API endpoint
+    this.isInitialized = true;
+    console.log("AI Service initialized with server-side API");
   }
 
   async getPredictions(text: string): Promise<Prediction[]> {
@@ -27,22 +22,16 @@ class LLMService {
     }
 
     try {
-      console.log("Making request to OpenAI API for text:", text);
+      console.log("Making request to secure API endpoint for text:", text);
 
-      // Use OpenAI API directly with the AI SDK
-      const response = await fetch("https://api.openai.com/v1/completions", {
+      // Use secure server-side API endpoint
+      const response = await fetch("/api/predict", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${(import.meta as any).env?.VITE_OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo-instruct",
-          prompt: text,
-          max_tokens: 1,
-          temperature: 0.7,
-          logprobs: 5,
-          echo: false,
+          text: text,
         }),
       });
 
@@ -56,22 +45,11 @@ class LLMService {
 
       const data = await response.json();
       console.log("Response data:", data);
+      
+      const predictions = data.predictions || [];
+      console.log("Predictions:", predictions);
 
-      const logprobs = data.choices?.[0]?.logprobs;
-      console.log("Logprobs:", logprobs);
-
-      if (logprobs && logprobs.top_logprobs && logprobs.top_logprobs[0]) {
-        const topLogprobs = logprobs.top_logprobs[0];
-
-        // Convert log probabilities to regular probabilities
-        const predictions: Prediction[] = Object.entries(topLogprobs)
-          .map(([token, logprob]) => ({
-            word: token.trim(),
-            probability: Math.exp(logprob as number), // Convert log probability to probability
-          }))
-          .filter((pred) => pred.word.length > 0) // Filter out empty tokens
-          .slice(0, 5);
-
+      if (predictions && predictions.length > 0) {
         // Ensure we always return exactly 5 predictions
         if (predictions.length >= 3) {
           // If we have fewer than 5, pad with mock predictions
