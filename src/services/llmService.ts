@@ -29,12 +29,12 @@ class LLMService {
     try {
       // Use Vercel AI Gateway with OpenAI completions API
       const response = await fetch(this.gatewayUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo-instruct',
+          model: "gpt-3.5-turbo-instruct",
           prompt: text,
           max_tokens: 1,
           temperature: 0.7,
@@ -49,7 +49,7 @@ class LLMService {
 
       const data = await response.json();
       const logprobs = data.choices?.[0]?.logprobs;
-      
+
       if (logprobs && logprobs.top_logprobs && logprobs.top_logprobs[0]) {
         const topLogprobs = logprobs.top_logprobs[0];
 
@@ -57,7 +57,7 @@ class LLMService {
         const predictions: Prediction[] = Object.entries(topLogprobs)
           .map(([token, logprob]) => ({
             word: token.trim(),
-            probability: Math.exp(logprob), // Convert log probability to probability
+            probability: Math.exp(logprob as number), // Convert log probability to probability
           }))
           .filter((pred) => pred.word.length > 0) // Filter out empty tokens
           .slice(0, 5);
