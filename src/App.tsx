@@ -1,16 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import { llmService, Prediction } from "./services/llmService";
 
 function App() {
-  const [inputText, setInputText] = useState("");
+  const [currentText, setCurrentText] = useState("The future of work is");
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Auto-predict when component mounts
+  useEffect(() => {
+    handlePredict();
+  }, []);
+
   const handlePredict = async () => {
-    if (!inputText.trim()) {
-      setError("Please enter some text to predict from");
+    if (!currentText.trim()) {
+      setError("No text to predict from");
       return;
     }
 
@@ -18,7 +23,7 @@ function App() {
     setError(null);
 
     try {
-      const predictions = await llmService.getPredictions(inputText);
+      const predictions = await llmService.getPredictions(currentText);
       setPredictions(predictions);
     } catch (err) {
       setError("Failed to get predictions. Please try again.");
@@ -29,15 +34,25 @@ function App() {
   };
 
   const handleWordSelect = (word: string) => {
-    const newText = inputText + (inputText.endsWith(" ") ? "" : " ") + word;
-    setInputText(newText);
+    const newText = currentText + " " + word;
+    setCurrentText(newText);
     setPredictions([]);
+    
+    // Auto-predict next word after selection
+    setTimeout(() => {
+      handlePredict();
+    }, 100);
   };
 
-  const handleClear = () => {
-    setInputText("");
+  const handleReset = () => {
+    setCurrentText("The future of work is");
     setPredictions([]);
     setError(null);
+    
+    // Auto-predict after reset
+    setTimeout(() => {
+      handlePredict();
+    }, 100);
   };
 
   return (
@@ -45,55 +60,51 @@ function App() {
       <div className="container">
         <h1 className="title">AI Text Predictor</h1>
         <p className="subtitle">
-          Type some text and let AI predict the next words
+          Click on a word to continue the sentence
         </p>
 
-        <div className="input-section">
-          <div className="input-container">
-            <textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Start typing your text here..."
-              className="text-input"
-              rows={4}
-            />
-          </div>
-
-          <div className="button-group">
-            <button
-              onClick={handlePredict}
-              disabled={isLoading}
-              className="predict-button"
-            >
-              {isLoading ? "Predicting..." : "Predict Next Words"}
-            </button>
-            <button onClick={handleClear} className="clear-button">
-              Clear
-            </button>
-          </div>
+        <div className="text-display">
+          <span className="base-text">The future of work is</span>
+          {currentText !== "The future of work is" && (
+            <span className="selected-text">
+              {currentText.replace("The future of work is", "")}
+            </span>
+          )}
         </div>
 
         {error && <div className="error-message">{error}</div>}
 
+        {isLoading && (
+          <div className="loading-message">Predicting next words...</div>
+        )}
+
         {predictions.length > 0 && (
           <div className="predictions-section">
-            <h3 className="predictions-title">Top 5 Predictions:</h3>
-            <div className="predictions-grid">
+            <div className="bar-graph">
               {predictions.map((prediction, index) => (
-                <button
+                <div
                   key={index}
+                  className="prediction-bar"
                   onClick={() => handleWordSelect(prediction.word)}
-                  className="prediction-card"
+                  style={{
+                    height: `${Math.max(prediction.probability * 200, 20)}px`,
+                  }}
                 >
-                  <div className="prediction-word">{prediction.word}</div>
-                  <div className="prediction-probability">
+                  <div className="bar-percentage">
                     {(prediction.probability * 100).toFixed(1)}%
                   </div>
-                </button>
+                  <div className="bar-word">{prediction.word}</div>
+                </div>
               ))}
             </div>
           </div>
         )}
+
+        <div className="controls">
+          <button onClick={handleReset} className="reset-button">
+            Reset
+          </button>
+        </div>
       </div>
     </div>
   );

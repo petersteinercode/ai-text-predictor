@@ -45,14 +45,14 @@ class LLMService {
       const logprobs = response.choices[0]?.logprobs;
       if (logprobs && logprobs.top_logprobs && logprobs.top_logprobs[0]) {
         const topLogprobs = logprobs.top_logprobs[0];
-        
+
         // Convert log probabilities to regular probabilities
         const predictions: Prediction[] = Object.entries(topLogprobs)
           .map(([token, logprob]) => ({
             word: token.trim(),
             probability: Math.exp(logprob), // Convert log probability to probability
           }))
-          .filter(pred => pred.word.length > 0) // Filter out empty tokens
+          .filter((pred) => pred.word.length > 0) // Filter out empty tokens
           .slice(0, 5);
 
         if (predictions.length >= 3) {
