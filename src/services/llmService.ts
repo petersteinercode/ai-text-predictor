@@ -1,48 +1,55 @@
-import OpenAI from "openai";
-
 export interface Prediction {
   word: string;
   probability: number;
 }
 
 class LLMService {
-  private openai: OpenAI | null = null;
-  private isInitialized = false;
+  private gatewayUrl: string | null = null;
+  private isInitialized: boolean = false;
 
   constructor() {
     this.initialize();
   }
 
   private initialize() {
-    const apiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY;
-    if (apiKey) {
-      this.openai = new OpenAI({
-        apiKey: apiKey,
-        dangerouslyAllowBrowser: true, // Note: In production, use a backend proxy
-      });
+    const gatewayUrl = (import.meta as any).env?.VITE_AI_GATEWAY_URL;
+    if (gatewayUrl) {
+      this.gatewayUrl = gatewayUrl;
       this.isInitialized = true;
     } else {
-      console.warn("OpenAI API key not found. Using mock predictions.");
+      console.warn("AI Gateway URL not found. Using mock predictions.");
     }
   }
 
   async getPredictions(text: string): Promise<Prediction[]> {
-    if (!this.isInitialized || !this.openai) {
+    if (!this.isInitialized || !this.gatewayUrl) {
       return this.getMockPredictions(text);
     }
 
     try {
-      // Use completion API with logprobs to get real probability scores
-      const response = await this.openai.completions.create({
-        model: "gpt-3.5-turbo-instruct",
-        prompt: text,
-        max_tokens: 1,
-        temperature: 0.7,
-        logprobs: 5, // Get top 5 log probabilities
-        echo: false, // Don't echo the input
+      // Use Vercel AI Gateway with OpenAI completions API
+      const response = await fetch(this.gatewayUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo-instruct',
+          prompt: text,
+          max_tokens: 1,
+          temperature: 0.7,
+          logprobs: 5, // Get top 5 log probabilities
+          echo: false, // Don't echo the input
+        }),
       });
 
-      const logprobs = response.choices[0]?.logprobs;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const logprobs = data.choices?.[0]?.logprobs;
+      
       if (logprobs && logprobs.top_logprobs && logprobs.top_logprobs[0]) {
         const topLogprobs = logprobs.top_logprobs[0];
 
@@ -69,7 +76,7 @@ class LLMService {
         }
       }
     } catch (error) {
-      console.error("LLM API error:", error);
+      console.error("AI Gateway error:", error);
     }
 
     return this.getMockPredictions(text);
