@@ -65,7 +65,7 @@ class LLMService {
         const predictions: Prediction[] = Object.entries(topLogprobs)
           .map(([token, logprob]) => ({
             word: token.trim(),
-            probability: Math.exp(logprob), // Convert log probability to probability
+            probability: Math.exp(logprob as number), // Convert log probability to probability
           }))
           .filter((pred) => pred.word.length > 0) // Filter out empty tokens
           .slice(0, 5);
