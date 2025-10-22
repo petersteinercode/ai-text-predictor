@@ -6,26 +6,28 @@ export interface Prediction {
 class LLMService {
   private openai: any = null;
   private isInitialized: boolean = false;
+  private initializationPromise: Promise<void> | null = null;
 
   constructor() {
-    this.initialize();
+    this.initializationPromise = this.initialize();
   }
 
-  private initialize() {
+  private async initialize(): Promise<void> {
     const apiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY;
     if (apiKey) {
-      // Import OpenAI dynamically to avoid issues in environments where it's not available
-      import('openai').then((OpenAI) => {
+      try {
+        // Import OpenAI dynamically to avoid issues in environments where it's not available
+        const OpenAI = await import("openai");
         this.openai = new OpenAI.default({
           apiKey: apiKey,
           dangerouslyAllowBrowser: true, // Note: In production, use a backend proxy
         });
         this.isInitialized = true;
         console.log("AI Service initialized with OpenAI API");
-      }).catch(() => {
+      } catch (error) {
         console.warn("OpenAI package not available, using mock predictions");
         this.isInitialized = false;
-      });
+      }
     } else {
       console.warn("OpenAI API key not found. Using mock predictions.");
       this.isInitialized = false;
@@ -33,6 +35,11 @@ class LLMService {
   }
 
   async getPredictions(text: string): Promise<Prediction[]> {
+    // Wait for initialization to complete before proceeding
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
+
     if (!this.isInitialized || !this.openai) {
       return this.getMockPredictions(text);
     }
