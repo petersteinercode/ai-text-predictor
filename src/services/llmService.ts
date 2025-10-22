@@ -4,6 +4,7 @@ export interface Prediction {
 }
 
 class LLMService {
+  private openai: any = null;
   private isInitialized: boolean = false;
 
   constructor() {
@@ -11,52 +12,64 @@ class LLMService {
   }
 
   private initialize() {
-    // Always initialized - will use server-side API endpoint
-    this.isInitialized = true;
-    console.log("AI Service initialized with server-side API");
+    const apiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY;
+    if (apiKey) {
+      // Import OpenAI dynamically to avoid issues in environments where it's not available
+      import('openai').then((OpenAI) => {
+        this.openai = new OpenAI.default({
+          apiKey: apiKey,
+          dangerouslyAllowBrowser: true, // Note: In production, use a backend proxy
+        });
+        this.isInitialized = true;
+        console.log("AI Service initialized with OpenAI API");
+      }).catch(() => {
+        console.warn("OpenAI package not available, using mock predictions");
+        this.isInitialized = false;
+      });
+    } else {
+      console.warn("OpenAI API key not found. Using mock predictions.");
+      this.isInitialized = false;
+    }
   }
 
   async getPredictions(text: string): Promise<Prediction[]> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.openai) {
       return this.getMockPredictions(text);
     }
 
     try {
-      console.log("Making request to secure API endpoint for text:", text);
+      console.log("Making request to OpenAI API for text:", text);
 
-      // Use secure server-side API endpoint
-      const response = await fetch("/api/predict", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: text,
-        }),
+      // Use OpenAI completion API with logprobs to get real probability scores
+      const response = await this.openai.completions.create({
+        model: "gpt-3.5-turbo-instruct",
+        prompt: text,
+        max_tokens: 1,
+        temperature: 0.7,
+        logprobs: 5, // Get top 5 log probabilities
+        echo: false, // Don't echo the input
       });
 
-      console.log("Response status:", response.status);
+      const logprobs = response.choices[0]?.logprobs;
+      if (logprobs && logprobs.top_logprobs && logprobs.top_logprobs[0]) {
+        const topLogprobs = logprobs.top_logprobs[0];
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("OpenAI API error:", response.status, errorText);
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
+        // Convert log probabilities to regular probabilities
+        const predictions: Prediction[] = Object.entries(topLogprobs)
+          .map(([token, logprob]) => ({
+            word: token.trim(),
+            probability: Math.exp(logprob), // Convert log probability to probability
+          }))
+          .filter((pred) => pred.word.length > 0) // Filter out empty tokens
+          .slice(0, 5);
 
-      const data = await response.json();
-      console.log("Response data:", data);
-      
-      const predictions = data.predictions || [];
-      console.log("Predictions:", predictions);
-
-      if (predictions && predictions.length > 0) {
         // Ensure we always return exactly 5 predictions
         if (predictions.length >= 3) {
           // If we have fewer than 5, pad with mock predictions
           if (predictions.length < 5) {
             const mockPredictions = await this.getMockPredictions(text);
             const additionalPredictions = mockPredictions
-              .filter((mock) => !predictions.some((p: Prediction) => p.word === mock.word))
+              .filter((mock) => !predictions.some((p) => p.word === mock.word))
               .slice(0, 5 - predictions.length);
             return [...predictions, ...additionalPredictions].slice(0, 5);
           }
@@ -65,10 +78,6 @@ class LLMService {
       }
     } catch (error) {
       console.error("OpenAI API error:", error);
-      console.error("Error details:", {
-        message: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-      });
     }
 
     return this.getMockPredictions(text);
