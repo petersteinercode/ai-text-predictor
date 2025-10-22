@@ -14,7 +14,6 @@ function App() {
   const [wordHighlightIndex, setWordHighlightIndex] = useState<number | null>(
     null
   );
-  const [previousText, setPreviousText] = useState("");
   const [hoveredBlurb, setHoveredBlurb] = useState<"top" | "bottom" | null>(
     null
   );
